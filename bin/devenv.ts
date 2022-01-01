@@ -7,6 +7,7 @@ const app = new cdk.App({
   context: {
     userId: process.env.DEVENV_USER_ID,
     keyName: process.env.DEVENV_KEY_NAME,
+    devenvTerminated: process.env.DEVENV_TERMINATED,
     sessionManagerEncryptKmsKeyArn: process.env.SESSION_MANAGER_ENCRYPT_KMS_KEY_ARN,
   }
 });

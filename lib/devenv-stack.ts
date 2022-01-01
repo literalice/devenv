@@ -10,6 +10,8 @@ export class DevenvStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
+    const capacity = this.node.tryGetContext('devenvTerminated') ? 0 : 1;
+
     // Machine Image
     const machineImage = ec2.MachineImage.latestAmazonLinux({
       generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
@@ -39,8 +41,6 @@ export class DevenvStack extends Stack {
       encrypted: true,
     });
     homeVolume.grantAttachVolume(launchTemplateRole);
-    const volumeArn = 
-      `arn:${homeVolume.stack.partition}:ec2:${homeVolume.stack.region}:${homeVolume.stack.account}:volume/${homeVolume.volumeId}`;
     launchTemplateRole.addToPolicy(new iam.PolicyStatement({
       actions: ['ec2:DescribeVolumes'],
       resources: [ '*' ]
@@ -91,7 +91,7 @@ export class DevenvStack extends Stack {
         }),
       }],
       targetCapacitySpecification: {
-        totalTargetCapacity: 1,
+        totalTargetCapacity: capacity,
         defaultTargetCapacityType: 'spot',
       },
     });
