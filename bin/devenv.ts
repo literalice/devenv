@@ -2,6 +2,7 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { DevenvStack } from '../lib/devenv-stack';
+import { AutomationStack } from '../lib/automation-stack';
 
 const app = new cdk.App({
   context: {
@@ -11,7 +12,13 @@ const app = new cdk.App({
     sessionManagerEncryptKmsKeyArn: process.env.SESSION_MANAGER_ENCRYPT_KMS_KEY_ARN,
   }
 });
-new DevenvStack(app, 'DevenvStack', {
+const devenv = new DevenvStack(app, 'DevenvStack', {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION,
+  },
+});
+new AutomationStack(app, 'DevenvAutomationStack', devenv.fleetId, {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION,

@@ -44,6 +44,7 @@ if [ ! -f "/home/${user_id}/.bash_profile" ]; then
     mkdir -p /home/${user_id}/.ssh
     cp -n /home/ec2-user/.ssh/authorized_keys /home/${user_id}/.ssh/
     chown -R ${user_id}:${user_id} /home/${user_id}
+    echo "alias aws='docker run --rm -it -v ~/.aws:/root/.aws -v \$(pwd):/aws amazon/aws-cli:2.4.10'" >> /home/${user_id}/.bashrc
 fi
 
 ## Permissions

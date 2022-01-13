@@ -7,6 +7,9 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Asset } from 'aws-cdk-lib/aws-s3-assets'
 
 export class DevenvStack extends Stack {
+  
+  fleetId: string;
+
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
@@ -20,7 +23,7 @@ export class DevenvStack extends Stack {
     const launchTemplateRole = new iam.Role(this, 'LaunchTemplateRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
       managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'),
+        iam.ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess'),
       ]
     });
 
@@ -40,11 +43,11 @@ export class DevenvStack extends Stack {
       size: Size.gibibytes(128),
       encrypted: true,
     });
-    homeVolume.grantAttachVolume(launchTemplateRole);
-    launchTemplateRole.addToPolicy(new iam.PolicyStatement({
-      actions: ['ec2:DescribeVolumes'],
-      resources: [ '*' ]
-    }));
+    // homeVolume.grantAttachVolume(launchTemplateRole);
+    // launchTemplateRole.addToPolicy(new iam.PolicyStatement({
+    //   actions: ['ec2:DescribeVolumes'],
+    //   resources: [ '*' ]
+    // }));
     Tags.of(homeVolume).add('Name', 'devenv');
 
     // User Data
@@ -77,7 +80,7 @@ export class DevenvStack extends Stack {
     ];
 
     const cfnLaunchTemplate = launchTemplate.node.defaultChild as ec2.CfnLaunchTemplate;
-    new ec2.CfnEC2Fleet(this, 'EC2Fleet', {
+    const fleet = new ec2.CfnEC2Fleet(this, 'EC2Fleet', {
       launchTemplateConfigs: [{
         launchTemplateSpecification: {
           launchTemplateId: cfnLaunchTemplate.ref,
@@ -95,5 +98,6 @@ export class DevenvStack extends Stack {
         defaultTargetCapacityType: 'spot',
       },
     });
+    this.fleetId = fleet.attrFleetId;
   }
 }
