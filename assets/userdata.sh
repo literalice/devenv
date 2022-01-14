@@ -44,7 +44,6 @@ if [ ! -f "/home/${user_id}/.bash_profile" ]; then
     mkdir -p /home/${user_id}/.ssh
     cp -n /home/ec2-user/.ssh/authorized_keys /home/${user_id}/.ssh/
     chown -R ${user_id}:${user_id} /home/${user_id}
-    echo "alias aws='docker run --rm -it -v ~/.aws:/root/.aws -v \$(pwd):/aws amazon/aws-cli:2.4.10'" >> /home/${user_id}/.bashrc
 fi
 
 ## Permissions
@@ -54,7 +53,16 @@ echo "${user_id} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${user_id}
 ## Others
 ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
 
+## zsh
+yum install zsh
+
 amazon-linux-extras install -y docker
 usermod -aG docker ${user_id}
 systemctl start docker
 systemctl enable docker
+
+yum remove awscli
+
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+./aws/install
