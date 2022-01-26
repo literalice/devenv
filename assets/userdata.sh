@@ -17,10 +17,15 @@ curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip
 unzip awscliv2.zip
 ./aws/install
 
+# Disk
+
+yum -y install nvme-cli
+EPHEMERAL_DISK=$(sudo nvme list | grep 'Amazon EC2 NVMe Instance Storage' | awk '{ print $1 }')
+
 ## Ephemeral
-mkfs -t xfs /dev/nvme1n1
+mkfs -t xfs $EPHEMERAL_DISK
 mkdir -p /var/lib/docker
-mount /dev/nvme1n1 /var/lib/docker
+mount $EPHEMERAL_DISK /var/lib/docker
 
 ## Prepares a volume for home dir
 while :; do
@@ -42,6 +47,7 @@ sleep 1
 
 ## Additional Packages
 yum install -y zsh util-linux-user git
+yum install -y gcc gcc-c++ make zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl11-devel tk-devel libffi-devel xz-devel
 
 mkdir -p /home/${user_id}
 mount /dev/xvdb /home/${user_id}
