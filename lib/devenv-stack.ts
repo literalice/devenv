@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { Stack, StackProps, Tags, Size } from 'aws-cdk-lib';
+import { Stack, StackProps, Tags, Size, CfnOutput } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kms from 'aws-cdk-lib/aws-kms';
@@ -43,11 +43,6 @@ export class DevenvStack extends Stack {
       size: Size.gibibytes(128),
       encrypted: true,
     });
-    // homeVolume.grantAttachVolume(launchTemplateRole);
-    // launchTemplateRole.addToPolicy(new iam.PolicyStatement({
-    //   actions: ['ec2:DescribeVolumes'],
-    //   resources: [ '*' ]
-    // }));
     Tags.of(homeVolume).add('Name', 'devenv');
 
     // User Data
@@ -99,5 +94,9 @@ export class DevenvStack extends Stack {
       },
     });
     this.fleetId = fleet.attrFleetId;
+
+    new CfnOutput(this, 'DevenvFleetId', {
+      exportName: 'DevenvFleetId', value: this.fleetId,
+    });
   }
 }

@@ -10,12 +10,9 @@ export class AutomationStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const fleetId = this.node.tryGetContext('fleetId');
-
     const launch = new nodeLambda.NodejsFunction(this, 'launch', {
       entry: path.join(__dirname, 'automation-stack.lambda.ts'),
       environment: {
-        FLEET_ID: fleetId,
         CAPACITY: '1'
       }
     });
@@ -26,7 +23,6 @@ export class AutomationStack extends Stack {
     const terminate = new nodeLambda.NodejsFunction(this, 'terminate', {
       entry: path.join(__dirname, 'automation-stack.lambda.ts'),
       environment: {
-        FLEET_ID: fleetId,
         CAPACITY: '0'
       }
     });
