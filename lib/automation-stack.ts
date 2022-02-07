@@ -17,7 +17,7 @@ export class AutomationStack extends Stack {
       }
     });
     launch.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['ec2:*'],
+      actions: ['ec2:*', 'cloudformation:ListExports'],
       resources: [ '*' ]
     }));
     const terminate = new nodeLambda.NodejsFunction(this, 'terminate', {
@@ -27,7 +27,7 @@ export class AutomationStack extends Stack {
       }
     });
     terminate.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['ec2:*'],
+      actions: ['ec2:*', 'cloudformation:ListExports'],
       resources: [ '*' ]
     }));
 
