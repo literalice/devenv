@@ -16,15 +16,26 @@ sudo systemctl enable amazon-ssm-agent
 sudo systemctl start amazon-ssm-agent
 
 ## Additional Packages
+yum -y install yum-utils nvme-cli
 yum -y install gcc gcc-c++ make zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl11-devel tk-devel libffi-devel xz-devel
 yum -y install zsh util-linux-user git
-yum -y install nvme-cli
 
 ## AWS CLI
 yum remove -y awscli
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 ./aws/install
+
+## SSM Plugin
+curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm" -o "session-manager-plugin.rpm"
+yum install -y session-manager-plugin.rpm
+
+### Packer
+yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+yum -y install packer
+
+## Latest
+yum -y update
 
 ## Disk
 
