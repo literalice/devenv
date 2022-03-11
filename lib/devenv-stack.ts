@@ -85,6 +85,9 @@ export class DevenvStack extends Stack {
           return {
             instanceType: instanceType.toString(),
             availabilityZone: vpc.availabilityZones[0],
+            subnetId: vpc.selectSubnets({
+              availabilityZones: [vpc.availabilityZones[0]],
+            }).subnetIds[0],
           }
         }),
       }],
