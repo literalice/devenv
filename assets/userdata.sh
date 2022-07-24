@@ -53,11 +53,12 @@ done
 
 ## Format
 
-EPHEMERAL_DISK=$(sudo nvme list | grep 'Amazon EC2 NVMe Instance Storage' | awk '{ print $1 }')
+EPHEMERAL_DISK=$(nvme list | grep 'Amazon EC2 NVMe Instance Storage' | awk '{ print $1 }')
 mkfs -t xfs $EPHEMERAL_DISK
 
-if [ "$(file -b -s /dev/xvdb)" == "data" ]; then
-    mkfs -t xfs /dev/xvdb
+HOME_DISK=$(nvme list | grep vol${volume_id#????} | awk '{ print $1 }')
+if [ "$(file -b -s $HOME_DISK)" == "data" ]; then
+    mkfs -t xfs $HOME_DISK
 fi
 
 sleep 1
@@ -68,9 +69,15 @@ sleep 1
 mkdir -p /var/lib/docker
 mount $EPHEMERAL_DISK /var/lib/docker
 
+EPHEMERAL_DISK_UUID=`blkid -o export $EPHEMERAL_DISK | grep UUID`
+echo $EPHEMERAL_DISK_UUID /var/lib/docker xfs defaults,nofail 0 2 >> /etc/fstab
+
 ## EBS for user home
 mkdir -p /home/${user_id}
-mount /dev/xvdb /home/${user_id}
+mount $HOME_DISK /home/${user_id}
+
+HOME_DISK_UUID=`blkid -o export $HOME_DISK | grep UUID`
+echo $HOME_DISK_UUID /home/${user_id} xfs defaults,nofail 0 2 >> /etc/fstab
 
 ## Sets up home dir
 useradd -d /home/${user_id} --shell=/usr/bin/zsh ${user_id}
@@ -93,3 +100,8 @@ amazon-linux-extras install -y docker
 usermod -aG docker ${user_id}
 systemctl start docker
 systemctl enable docker
+
+# Compose
+wget https://github.com/docker/compose/releases/download/v2.6.1/docker-compose-linux-x86_64
+chmod +x docker-compose-linux-x86_64
+mv docker-compose-linux-x86_64 /usr/libexec/docker/cli-plugins/docker-compose
