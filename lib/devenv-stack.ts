@@ -16,8 +16,7 @@ export class DevenvStack extends Stack {
     const capacity = this.node.tryGetContext('devenvTerminated') ? 0 : 1;
 
     // Machine Image
-    const machineImage = ec2.MachineImage.latestAmazonLinux({
-      generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
+    const machineImage = ec2.MachineImage.latestAmazonLinux2023({
     });
 
     const launchTemplateRole = new iam.Role(this, 'LaunchTemplateRole', {

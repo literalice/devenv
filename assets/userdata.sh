@@ -7,35 +7,25 @@ set -x
 volume_id=$1
 user_id=$2
 
-instance_id=$(curl -s 169.254.169.254/latest/meta-data/instance-id)
-export AWS_DEFAULT_REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed -e 's/.$//')
-
-
-## Systems Manager
-sudo systemctl enable amazon-ssm-agent
-sudo systemctl start amazon-ssm-agent
+idms_token=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+instance_id=$(curl -s -H "X-aws-ec2-metadata-token: $idms_token" 169.254.169.254/latest/meta-data/instance-id)
+export AWS_DEFAULT_REGION=$(curl -s -H "X-aws-ec2-metadata-token: $idms_token" http://169.254.169.254/latest/meta-data/placement/availability-zone | sed -e 's/.$//')
 
 ## Additional Packages
-yum -y install yum-utils nvme-cli
-yum -y install gcc gcc-c++ make zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl11-devel tk-devel libffi-devel xz-devel
-yum -y install zsh util-linux-user git
-
-## AWS CLI
-yum remove -y awscli
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-./aws/install
+dnf -y install nvme-cli
+dnf -y install gcc gcc-c++ make zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl11-devel tk-devel libffi-devel xz-devel
+dnf -y install zsh util-linux-user git
 
 ## SSM Plugin
 curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm" -o "session-manager-plugin.rpm"
-yum install -y session-manager-plugin.rpm
+dnf install -y session-manager-plugin.rpm
 
 ### Packer
-yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
-yum -y install packer
+dnf config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+dnf -y install packer
 
 ## Latest
-yum -y update
+dnf -y upgrade
 
 ## Disk
 
@@ -57,9 +47,7 @@ EPHEMERAL_DISK=$(nvme list | grep 'Amazon EC2 NVMe Instance Storage' | awk '{ pr
 mkfs -t xfs $EPHEMERAL_DISK
 
 HOME_DISK=$(nvme list | grep vol${volume_id#????} | awk '{ print $1 }')
-if [ "$(file -b -s $HOME_DISK)" == "data" ]; then
-    mkfs -t xfs $HOME_DISK
-fi
+mkfs -t xfs $HOME_DISK
 
 sleep 1
 
@@ -80,7 +68,7 @@ HOME_DISK_UUID=`blkid -o export $HOME_DISK | grep UUID`
 echo $HOME_DISK_UUID /home/${user_id} xfs defaults,nofail 0 2 >> /etc/fstab
 
 ## Sets up home dir
-useradd -d /home/${user_id} --shell=/usr/bin/zsh ${user_id}
+useradd -u 1023 -M -d /home/${user_id} --shell=/usr/bin/zsh ${user_id}
 if [ ! -f "/home/${user_id}/.bash_profile" ]; then
     cp -R /etc/skel/.[a-z]* /home/${user_id}
     mkdir -p /home/${user_id}/.ssh
@@ -96,12 +84,12 @@ echo "${user_id} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${user_id}
 
 ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
 
-amazon-linux-extras install -y docker
+dnf -y install docker
 usermod -aG docker ${user_id}
 systemctl start docker
 systemctl enable docker
 
 # Compose
-wget https://github.com/docker/compose/releases/download/v2.6.1/docker-compose-linux-x86_64
+wget https://github.com/docker/compose/releases/download/v2.17.3/docker-compose-linux-x86_64
 chmod +x docker-compose-linux-x86_64
 mv docker-compose-linux-x86_64 /usr/libexec/docker/cli-plugins/docker-compose
