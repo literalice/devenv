@@ -8,7 +8,7 @@ import { Asset } from 'aws-cdk-lib/aws-s3-assets'
 
 export class DevenvStack extends Stack {
   
-  fleetId: string;
+  readonly fleetId: string;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
@@ -31,7 +31,7 @@ export class DevenvStack extends Stack {
     kmsKey.grantEncryptDecrypt(launchTemplateRole);
 
     const vpc = new ec2.Vpc(this, 'DevVPC', {
-      cidr: '10.121.0.0/16',
+      ipAddresses: ec2.IpAddresses.cidr('10.121.0.0/16'),
       natGateways: 1,
     });
     Tags.of(vpc).add('Name', 'devenv');
@@ -67,6 +67,16 @@ export class DevenvStack extends Stack {
       keyName: this.node.tryGetContext('keyName'),
       userData: launchTemplateUserData,
       ebsOptimized: true,
+      blockDevices: [
+        {
+          deviceName: '/dev/xvda',
+          volume: ec2.BlockDeviceVolume.ebs(32, {
+            encrypted: true,
+            volumeType: ec2.EbsDeviceVolumeType.GP3,
+            deleteOnTermination: true,
+          }),
+        }
+      ],
     });
 
     const instanceTypes = [
