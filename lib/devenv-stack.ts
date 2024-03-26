@@ -16,8 +16,7 @@ export class DevenvStack extends Stack {
     const capacity = this.node.tryGetContext('devenvTerminated') ? 0 : 1;
 
     // Machine Image
-    const machineImage = ec2.MachineImage.latestAmazonLinux2023({
-    });
+    const machineImage = ec2.MachineImage.latestAmazonLinux2023();
 
     const launchTemplateRole = new iam.Role(this, 'LaunchTemplateRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
@@ -60,10 +59,13 @@ export class DevenvStack extends Stack {
     });
     userdata.grantRead(launchTemplateRole);
 
+    const keyName = this.node.tryGetContext('keyName');
+    const keyPair = keyName ? ec2.KeyPair.fromKeyPairName(this, 'KeyPair', keyName) : undefined;
+
     const launchTemplate = new ec2.LaunchTemplate(this, 'LaunchTemplate', {
       machineImage,
       role: launchTemplateRole,
-      keyName: this.node.tryGetContext('keyName'),
+      keyPair,
       userData: launchTemplateUserData,
       ebsOptimized: true,
       blockDevices: [
@@ -78,11 +80,6 @@ export class DevenvStack extends Stack {
       ],
     });
 
-    const instanceTypes = [
-      ec2.InstanceType.of(ec2.InstanceClass.M5AD, ec2.InstanceSize.XLARGE2),
-      ec2.InstanceType.of(ec2.InstanceClass.M5D, ec2.InstanceSize.XLARGE2),
-    ];
-
     const cfnLaunchTemplate = launchTemplate.node.defaultChild as ec2.CfnLaunchTemplate;
     const fleet = new ec2.CfnEC2Fleet(this, 'EC2Fleet', {
       launchTemplateConfigs: [{
@@ -90,19 +87,33 @@ export class DevenvStack extends Stack {
           launchTemplateId: cfnLaunchTemplate.ref,
           version: cfnLaunchTemplate.attrLatestVersionNumber,
         },
-        overrides: instanceTypes.map(instanceType => {
-          return {
-            instanceType: instanceType.toString(),
-            availabilityZone: vpc.availabilityZones[0],
+        overrides: [
+          {
+            instanceRequirements: {
+              localStorage: 'required',
+              localStorageTypes: ['ssd'],
+              instanceGenerations: ['current'],
+              vCpuCount: {
+                min: 4,
+                max: 8,
+              },
+              memoryMiB: {
+                min: 12000,
+                max: 20000,
+              }
+            },
             subnetId: vpc.selectSubnets({
-              availabilityZones: [vpc.availabilityZones[0]],
-            }).subnetIds[0],
+              availabilityZones: [homeVolume.availabilityZone],
+            }).subnetIds.join(', '),
           }
-        }),
+        ],
       }],
       targetCapacitySpecification: {
         totalTargetCapacity: capacity,
         defaultTargetCapacityType: 'spot',
+      },
+      spotOptions: {
+        allocationStrategy: 'price-capacity-optimized',
       },
     });
     this.fleetId = fleet.attrFleetId;
