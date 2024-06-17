@@ -33,9 +33,10 @@ instance_id=$(curl -s -H "X-aws-ec2-metadata-token: $idms_token" 169.254.169.254
 export AWS_DEFAULT_REGION=$(curl -s -H "X-aws-ec2-metadata-token: $idms_token" http://169.254.169.254/latest/meta-data/placement/availability-zone | sed -e 's/.$//')
 
 ## Additional Packages
+retry_command "dnf -y swap gnupg2-minimal gnupg2-full"
 retry_command "dnf -y install nvme-cli"
 retry_command "dnf -y install gcc gcc-c++ make zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl11-devel tk-devel libffi-devel xz-devel"
-retry_command "dnf -y install zsh util-linux-user git"
+retry_command "dnf -y install zsh util-linux-user git amazon-ecr-credential-helper"
 
 ## SSM Plugin
 curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm" -o "session-manager-plugin.rpm"
