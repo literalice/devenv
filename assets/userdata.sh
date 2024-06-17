@@ -2,6 +2,27 @@
 
 set -x
 
+# Functions
+retry_command() {
+    local retries=0
+    local max_retries=10
+    local sleep_time=5
+    local cmd="$1"
+
+    while ! ${cmd}; do
+        retries=$((retries + 1))
+        if [[ "${retries}" > "${max_retries}" ]]; then
+            echo "Maximum retry count ($max_retries) exceeded. Command execution failed."
+            return 1
+        fi
+        echo "Command execution failed. Retrying attempt ${retries}..."
+        sleep ${sleep_time}
+    done
+
+    echo "Command executed successfully."
+    return 0
+}
+
 ## Params
 
 volume_id=$1
@@ -93,24 +114,3 @@ systemctl enable docker
 wget https://github.com/docker/compose/releases/download/v2.17.3/docker-compose-linux-x86_64
 chmod +x docker-compose-linux-x86_64
 mv docker-compose-linux-x86_64 /usr/libexec/docker/cli-plugins/docker-compose
-
-retry_command() {
-    local retries=0
-    local max_retries=10
-    local sleep_time=5
-    local cmd="$1"
-
-    # 実行したコマンドが失敗した場合、最大リトライ回数までリトライする
-    while ! ${cmd}; do
-        retries=$((retries + 1))
-        if [[ "${retries}" > "${max_retries}" ]]; then
-            echo "Maximum retry count ($max_retries) exceeded. Command execution failed."
-            return 1
-        fi
-        echo "Command execution failed. Retrying attempt ${retries}..."
-        sleep ${sleep_time}
-    done
-
-    echo "Command executed successfully."
-    return 0
-}
