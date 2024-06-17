@@ -12,20 +12,20 @@ instance_id=$(curl -s -H "X-aws-ec2-metadata-token: $idms_token" 169.254.169.254
 export AWS_DEFAULT_REGION=$(curl -s -H "X-aws-ec2-metadata-token: $idms_token" http://169.254.169.254/latest/meta-data/placement/availability-zone | sed -e 's/.$//')
 
 ## Additional Packages
-dnf -y install nvme-cli
-dnf -y install gcc gcc-c++ make zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl11-devel tk-devel libffi-devel xz-devel
-dnf -y install zsh util-linux-user git
+retry_command "dnf -y install nvme-cli"
+retry_command "dnf -y install gcc gcc-c++ make zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl11-devel tk-devel libffi-devel xz-devel"
+retry_command "dnf -y install zsh util-linux-user git"
 
 ## SSM Plugin
 curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm" -o "session-manager-plugin.rpm"
-dnf install -y session-manager-plugin.rpm
+retry_command "dnf install -y session-manager-plugin.rpm"
 
 ### Packer
 dnf config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
-dnf -y install packer
+retry_command "dnf -y install packer"
 
 ## Latest
-dnf -y upgrade
+retry_command "dnf -y upgrade"
 
 ## Disk
 
@@ -84,7 +84,7 @@ echo "${user_id} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${user_id}
 
 ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
 
-dnf -y install docker
+retry_command "dnf -y install docker"
 usermod -aG docker ${user_id}
 systemctl start docker
 systemctl enable docker
@@ -93,3 +93,24 @@ systemctl enable docker
 wget https://github.com/docker/compose/releases/download/v2.17.3/docker-compose-linux-x86_64
 chmod +x docker-compose-linux-x86_64
 mv docker-compose-linux-x86_64 /usr/libexec/docker/cli-plugins/docker-compose
+
+retry_command() {
+    local retries=0
+    local max_retries=10
+    local sleep_time=5
+    local cmd="$1"
+
+    # 実行したコマンドが失敗した場合、最大リトライ回数までリトライする
+    while ! ${cmd}; do
+        retries=$((retries + 1))
+        if [[ "${retries}" > "${max_retries}" ]]; then
+            echo "Maximum retry count ($max_retries) exceeded. Command execution failed."
+            return 1
+        fi
+        echo "Command execution failed. Retrying attempt ${retries}..."
+        sleep ${sleep_time}
+    done
+
+    echo "Command executed successfully."
+    return 0
+}
